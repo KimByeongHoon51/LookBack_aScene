@@ -24,6 +24,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 #state{margin-top:8px;font-size:13px;color:#cfe4ff;min-height:1em}
 #warn{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:6;pointer-events:none;display:none;text-align:center;font-size:20px;color:#ffd27a;text-shadow:2px 2px 0 #000,-1px -1px 0 #000;animation:warnBlink .8s infinite;width:max-content;max-width:90vw}
 #warn small{display:block;font-size:13px;color:var(--ink);margin-top:6px}
+#toast{position:fixed;left:50%;top:16%;transform:translateX(-50%);z-index:6;pointer-events:none;opacity:0;font-size:16px;color:var(--gold);text-shadow:2px 2px 0 #000;width:max-content;max-width:90vw;text-align:center}
+#toast.on{animation:toast 4.5s forwards}
+@keyframes toast{12%{opacity:1}75%{opacity:1}to{opacity:0}}
 #help{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);font-size:13px;color:var(--dim);z-index:5;white-space:nowrap;pointer-events:none;display:none}
 #mute{position:fixed;right:16px;top:14px;z-index:6;background:rgba(10,12,26,.6);border:2px solid rgba(255,255,255,.3);padding:6px 12px;font-size:13px}
 
@@ -96,6 +99,7 @@ body.touch #warn{font-size:17px;top:32%}
   <div id="state"></div>
 </div>
 <div id="warn">너무 추워요!<small id="warnSub">Space 를 눌러 귀를 막으세요</small></div>
+<div id="toast"></div>
 <div id="help">방향키 이동 · Space 귀 막기 · M 소리</div>
 <button id="mute">소리 켜짐</button>
 <div id="touch">
@@ -286,7 +290,9 @@ function roadDist(x, y) {
   return m;
 }
 // 어둠의 관문: 각 샛길 입구를 조금 지난 메인 도로 위. 해당 장소 컷신을 보면 풀린다.
-const GATES = SIDES.map(s => { const d = along(MAIN, s[0][0], s[0][1]) + 32, p = pointAt(MAIN, d); return { d, x: p.x, y: p.y, unlockT: null }; });
+// 4번째 관문은 편의점 바로 뒤: 편의점 컷신을 보면 시내로 가는 길이 몰래 열린다
+const GATES = [...SIDES.map(s => along(MAIN, s[0][0], s[0][1]) + 32), along(MAIN, 10, -1432)]
+  .map(d => { const p = pointAt(MAIN, d); return { d, x: p.x, y: p.y, unlockT: null }; });
 const openLevel = () => GATES.filter(gt => gt.unlockT !== null).length;
 // 잠긴 구역의 불빛은 관문이 풀린 뒤, 관문에서 가까운 순서대로 켜진다
 function lockedFactor(level, x, y) {
@@ -329,10 +335,10 @@ const LOCS = [
   { id: 'fujino', name: '후지노 집', img: '후지노집.jpg', gate: 2, level: 2,
     lines: ["그날 이후, 둘은 함께 만화를 그리기 시작한다.","이야기는 후지노가, 배경은 쿄모토가. 완성까지 꼬박 1년이 걸렸다.","출판사에 찾아가 공모전에 작품을 낸다. \"중학생이 정말 이걸 그린 거예요?\""],
     x: 195, y: -1180, trig: { x: 195, y: -1169, r: 15 } },
-  { id: 'store', name: '편의점', img: '편의점.jpg', level: 3,
+  { id: 'store', name: '편의점', img: '편의점.jpg', gate: 3, level: 3,
     lines: ["눈밭을 헤치고 도착한 편의점. 떨리는 손으로 잡지를 펼친다.","둘의 만화 「메탈 퍼레이드」, 준입선. 상금 100만 엔."],
     x: 58, y: -1380, trig: { x0: -30, y0: -1398, x1: 95, y1: -1362 } },
-  { id: 'city', name: '시내', img: '시내.jpg', final: true, level: 3,
+  { id: 'city', name: '시내', img: '시내.jpg', final: true, level: 4,
     lines: ["상금 중 10만 엔을 들고 시내로. 크레이프, 영화관, 햄버거 가게, 서점까지 신나게 논다.","돌아오는 전철 안, 쿄모토가 말한다. \"사실 사람이 무서웠는데, 오늘은 정말 재밌었어. 방에서 꺼내 줘서 고마워.\"","\"답례는 10만 엔이면 돼.\""],
     x: 10, y: -1640, trig: { x0: -30, y0: -1646, x1: 50, y1: -1612 } },
 ];
@@ -438,7 +444,7 @@ function house(L, o) {
   light(x - 8, y + 12, 58, 1.05, 'cool'); light(x - 33, y, 12, .8, 'cool');
 }
 // 시내: 역과 상가 건물들
-{ const L = loc('city'), { x, y } = L, r = rng(42), blocks = []; curLevel = 3;
+{ const L = loc('city'), { x, y } = L, r = rng(42), blocks = []; curLevel = 4;
   let bx = -175;
   while (bx < 195) {
     const w = 22 + (r() * 18 | 0);
@@ -637,7 +643,7 @@ function playStep(vol, pan) {
   if (!AC) return;
   if (!stepBuf) return crunch(vol, pan);
   let i; do i = rand() * slices.length | 0; while (i === lastSlice && slices.length > 1); lastSlice = i;
-  const s = slices[i], len = Math.min(s.z - s.a, .36), t = AC.currentTime, amp = Math.min(6, .25 / s.pk) * vol;   // 배경음이 묻히지 않게 이전의 절반 음량
+  const s = slices[i], len = Math.min(s.z - s.a, .36), t = AC.currentTime, amp = Math.min(1.5, .06 / s.pk) * vol;   // 배경음 밑에 은은하게 깔리는 정도
   const src = AC.createBufferSource(); src.buffer = stepBuf; src.playbackRate.value = .94 + rand() * .14;
   const gn = AC.createGain();
   gn.gain.setValueAtTime(0, t); gn.gain.linearRampToValueAtTime(amp, t + .006);
@@ -646,7 +652,7 @@ function playStep(vol, pan) {
 }
 // 효과음 파일을 못 읽었을 때 쓰는 합성 서걱 소리
 function crunch(vol, pan) {
-  const t = AC.currentTime + .005, o = AC.createGain(); o.gain.value = vol * .275; o.connect(out(pan));
+  const t = AC.currentTime + .005, o = AC.createGain(); o.gain.value = vol * .07; o.connect(out(pan));
   const n = 6 + (rand() * 5 | 0);
   for (let i = 0; i < n; i++) {
     const s = AC.createBufferSource(); s.buffer = noiseBuf;
@@ -985,8 +991,14 @@ function closeCut() {
   if (phase !== 'cut') return;
   $('#cut').classList.remove('show');
   if (cur.final) return showEnding();
-  if (cur.gate !== undefined && GATES[cur.gate].unlockT === null) { GATES[cur.gate].unlockT = T; chime(); }
+  if (cur.gate !== undefined && GATES[cur.gate].unlockT === null) {
+    GATES[cur.gate].unlockT = T; chime();
+    if (cur.id === 'store') toast('멀리서 시내의 불빛이 켜졌다…');
+  }
   cur = null; phase = 'play'; setPlaying(true);
+}
+function toast(msg) {
+  const el = $('#toast'); el.textContent = msg; el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
 }
 function cutTap() {
   if (phase !== 'cut' || !cur) return;
