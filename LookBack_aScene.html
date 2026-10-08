@@ -321,19 +321,19 @@ function light(x, y, r, i, tint, fl) { STATIC_LIGHTS.push({ x, y, r, i, tint, se
 
 const LOCS = [
   { id: 'school', name: '학교', img: '학교.jpg', gate: 0, level: 0,
-    text: '후지노는 학년 신문에서 4컷 만화를 그린다. 후지노가 쿄모토의 그림을 처음 보게 되는 장면',
+    lines: ["초등학교 4학년 후지노는 학년 신문에 4컷 만화를 그린다. 친구들의 칭찬은 언제나 후지노의 차지였다.","어느 날 선생님의 부탁으로, 등교를 거부하는 옆 반 아이 쿄모토에게 연재란 한 칸을 양보한다. \"학교도 못 나오는 애가 만화를 그릴 수 있겠어?\"","하지만 신문에 실린 쿄모토의 그림은 압도적이었다. 하굣길, 후지노는 소리친다. \"절대 인정 못 해!\""],
     x: 185, y: -424, trig: { x: 185, y: -412, r: 15 } },
   { id: 'kyomoto', name: '쿄모토 집', img: '쿄모토집.jpg', gate: 1, level: 1,
-    text: '후지노와 쿄모토의 첫 만남. 쿄모토는 후지노의 열렬한 팬임을 고백하는 장면',
+    lines: ["졸업식 날, 후지노는 선생님의 부탁으로 쿄모토에게 졸업장을 전해 주러 간다.","복도에 산더미처럼 쌓인 스케치북. 무심코 그린 4컷 만화 한 장이 손에서 미끄러져 쿄모토의 방 문틈으로 들어가 버린다.","\"후지노 선생님!\" 방에서 뛰쳐나온 쿄모토는 3학년 때부터 후지노의 팬이었다고 고백한다.","쿄모토의 등에 사인을 해 준 후지노. 왜 만화를 그만뒀냐는 물음에, 공모전에 낼 만화를 구상 중이라고 둘러댄다."],
     x: -190, y: -765, trig: { x: -190, y: -754, r: 15 } },
   { id: 'fujino', name: '후지노 집', img: '후지노집.jpg', gate: 2, level: 2,
-    text: '후지노와 쿄모토는 친구가 된다. 후지노와 쿄모토가 후지노 집에서 같이 만화를 그리는 장면',
+    lines: ["그날 이후, 둘은 함께 만화를 그리기 시작한다.","이야기는 후지노가, 배경은 쿄모토가. 완성까지 꼬박 1년이 걸렸다.","출판사에 찾아가 공모전에 작품을 낸다. \"중학생이 정말 이걸 그린 거예요?\""],
     x: 195, y: -1180, trig: { x: 195, y: -1169, r: 15 } },
   { id: 'store', name: '편의점', img: '편의점.jpg', level: 3,
-    text: '후지노와 쿄모토가 눈밭을 뚫고 편의점에 도착한다. 자신들이 1년 동안 준비한 만화가 잡지에 실렸는지 확인하는 장면',
+    lines: ["눈밭을 헤치고 도착한 편의점. 떨리는 손으로 잡지를 펼친다.","둘의 만화 「메탈 퍼레이드」, 준입선. 상금 100만 엔."],
     x: 58, y: -1380, trig: { x0: -30, y0: -1398, x1: 95, y1: -1362 } },
   { id: 'city', name: '시내', img: '시내.jpg', final: true, level: 3,
-    text: '후지노와 쿄모토는 시내로 놀러 나간다. 시내에서 놀고 난 뒤 지하철에서 후지노와 쿄모토의 대화 장면',
+    lines: ["상금 중 10만 엔을 들고 시내로. 크레이프, 영화관, 햄버거 가게, 서점까지 신나게 논다.","돌아오는 전철 안, 쿄모토가 말한다. \"사실 사람이 무서웠는데, 오늘은 정말 재밌었어. 방에서 꺼내 줘서 고마워.\"","\"답례는 10만 엔이면 돼.\""],
     x: 10, y: -1640, trig: { x0: -30, y0: -1646, x1: 50, y1: -1612 } },
 ];
 for (const L of LOCS) { L.armed = true; L.image = new Image(); L.image.src = L.img; }
@@ -637,7 +637,7 @@ function playStep(vol, pan) {
   if (!AC) return;
   if (!stepBuf) return crunch(vol, pan);
   let i; do i = rand() * slices.length | 0; while (i === lastSlice && slices.length > 1); lastSlice = i;
-  const s = slices[i], len = Math.min(s.z - s.a, .36), t = AC.currentTime, amp = Math.min(12, .5 / s.pk) * vol;
+  const s = slices[i], len = Math.min(s.z - s.a, .36), t = AC.currentTime, amp = Math.min(6, .25 / s.pk) * vol;   // 배경음이 묻히지 않게 이전의 절반 음량
   const src = AC.createBufferSource(); src.buffer = stepBuf; src.playbackRate.value = .94 + rand() * .14;
   const gn = AC.createGain();
   gn.gain.setValueAtTime(0, t); gn.gain.linearRampToValueAtTime(amp, t + .006);
@@ -646,7 +646,7 @@ function playStep(vol, pan) {
 }
 // 효과음 파일을 못 읽었을 때 쓰는 합성 서걱 소리
 function crunch(vol, pan) {
-  const t = AC.currentTime + .005, o = AC.createGain(); o.gain.value = vol * .55; o.connect(out(pan));
+  const t = AC.currentTime + .005, o = AC.createGain(); o.gain.value = vol * .275; o.connect(out(pan));
   const n = 6 + (rand() * 5 | 0);
   for (let i = 0; i < n; i++) {
     const s = AC.createBufferSource(); s.buffer = noiseBuf;
@@ -965,7 +965,7 @@ function updateHud() {
 // ───────── 컷신 ─────────
 const cutCv = $('#cutCv'), cctx = cutCv.getContext('2d');
 const tmp = document.createElement('canvas'), tctx = tmp.getContext('2d');
-let cur = null, cutT = 0, typed = 0;
+let cur = null, cutT = 0, typed = 0, pg = 0, pgT = .9;   // pg: 지금 보여주는 문단, pgT: 그 문단이 시작된 시각
 const cutSnow = Array.from({ length: 90 }, () => ({ x: rand() * 340 - 10, y: rand() * 190, z: rand() ** 2, ph: rand() * TAU }));
 const flash = $('#flash');
 function setFlash(op, color, ms) { flash.style.transition = `opacity ${ms}ms`; if (color) flash.style.background = color; flash.style.opacity = op; }
@@ -975,9 +975,8 @@ function arrive(L) {
   setFlash(.92, '#fff6e0', ARRIVE_TIME * 1000);        // 장소에 닿으면 화면이 환해진다
 }
 function openCut(L) {
-  cur = L; cutT = 0; typed = 0; phase = 'cut';
+  cur = L; cutT = 0; typed = 0; pg = 0; pgT = .9; phase = 'cut';
   $('#cutName').textContent = L.name; $('#cutText').textContent = '';
-  $('#cutHint').textContent = IS_TOUCH ? '탭하여 닫기' : 'ESC 닫기';
   $('#cut').classList.add('show'); $('#cutHint').classList.remove('on');
   setFlash(0, null, 600);
   setPlaying(false);
@@ -991,7 +990,9 @@ function closeCut() {
 }
 function cutTap() {
   if (phase !== 'cut' || !cur) return;
-  if (typed < cur.text.length) cutT = Math.max(cutT, .9 + cur.text.length * .045 + .01);   // 글자 먼저 다 보여주기
+  const text = cur.lines[pg];
+  if (cutT < pgT || typed < text.length) pgT = Math.min(pgT, cutT) - text.length * .045 - .01;   // 글자 먼저 다 보여주기
+  else if (pg < cur.lines.length - 1) { pg++; pgT = cutT; typed = -1; $('#cutHint').classList.remove('on'); }
   else closeCut();
 }
 // 모자이크에서 서서히 선명해지는 도트풍 컷신 + 위에 내리는 눈
@@ -1018,10 +1019,14 @@ function drawCut(dt) {
     cctx.fillRect(Math.round(f.x), Math.round(f.y), s, s);
   }
   cctx.globalAlpha = 1;
-  if (cutT > .9) {
-    const n = Math.min(cur.text.length, Math.floor((cutT - .9) / .045));
-    if (n !== typed) { typed = n; $('#cutText').textContent = cur.text.slice(0, n); }
-    if (n === cur.text.length) $('#cutHint').classList.add('on');
+  if (cutT > pgT) {
+    const text = cur.lines[pg], n = Math.min(text.length, Math.floor((cutT - pgT) / .045));
+    if (n !== typed) { typed = n; $('#cutText').textContent = text.slice(0, n); }
+    if (n === text.length && !$('#cutHint').classList.contains('on')) {
+      const more = pg < cur.lines.length - 1;
+      $('#cutHint').textContent = `${pg + 1} / ${cur.lines.length} · ` + (more ? (IS_TOUCH ? '탭하여 다음' : 'Space 다음 · ESC 닫기') : (IS_TOUCH ? '탭하여 닫기' : 'Space / ESC 닫기'));
+      $('#cutHint').classList.add('on');
+    }
   }
 }
 
